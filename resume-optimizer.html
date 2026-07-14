@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Resume Grading Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Public+Sans:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  :root{
+    --ink:#1C2620;
+    --ink-2:#232E27;
+    --panel:#26312A;
+    --paper:#F3EFE3;
+    --paper-2:#EAE4D2;
+    --pencil:#3A392F;
+    --redpen:#B2402F;
+    --redpen-dark:#8C3024;
+    --highlighter:#E8C13B;
+    --manila:#C9A15A;
+    --muted:#9AA69A;
+    --line:#3A473E;
+    --good:#7FA66B;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse at top left, rgba(255,255,255,0.03), transparent 60%),
+      var(--ink);
+    color:var(--paper);
+    font-family:'Public Sans', sans-serif;
+    min-height:100vh;
+    padding:28px 16px 80px;
+  }
+  .wrap{max-width:900px;margin:0 auto;}
+  .masthead{
+    text-align:center;
+    margin-bottom:22px;
+  }
+  .masthead .eyebrow{
+    font-family:'Special Elite', monospace;
+    color:var(--highlighter);
+    letter-spacing:.14em;
+    font-size:11px;
+    text-transform:uppercase;
+  }
+  .masthead h1{
+    font-family:'Source Serif 4', serif;
+    font-weight:700;
+    font-size:32px;
+    margin:6px 0 4px;
+    letter-spacing:-0.01em;
+  }
+  .masthead p{color:var(--muted);font-size:13.5px;margin:0;}
+
+  /* Folder tab step nav */
+  .tabs{display:flex;gap:6px;margin:26px 0 0;padding:0 6px;}
+  .tab{
+    flex:1;
+    position:relative;
+    text-align:center;
+    padding:10px 4px 9px;
+    font-family:'Special Elite', monospace;
+    font-size:10.5px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+    background:var(--ink-2);
+    border:1px solid var(--line);
+    border-bottom:none;
+    border-radius:8px 8px 0 0;
+    clip-path:polygon(6% 0,94% 0,100% 100%,0% 100%);
+  }
+  .tab.active{background:var(--manila);color:#2b2410;font-weight:700;}
+  .tab.done{color:var(--good);}
+  .tab small{display:block;font-size:14px;margin-top:2px;}
+
+  .desk{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:2px;
+    padding:26px 24px;
+    box-shadow:0 18px 40px -18px rgba(0,0,0,.6);
+  }
+
+  label.field-label{
+    display:block;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 8px;font-weight:600;
+  }
+  textarea, input[type=text]{
+    width:100%;background:var(--ink-2);border:1px solid var(--line);color:var(--paper);
+    border-radius:4px;padding:12px 13px;font-family:'Public Sans',sans-serif;font-size:14px;
+    resize:vertical;line-height:1.5;
+  }
+  textarea:focus, input:focus{outline:2px solid var(--highlighter);outline-offset:1px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr;}}
+
+  .uploadbox{
+    border:1.5px dashed var(--line);border-radius:6px;padding:16px;text-align:center;
+    background:var(--ink-2);cursor:pointer;font-size:13px;color:var(--muted);
+  }
+  .uploadbox:hover{border-color:var(--highlighter);color:var(--paper);}
+  .switch-row{display:flex;gap:8px;margin-bottom:10px;}
+  .pill-btn{
+    font-family:'Public Sans';font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px;
+    border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;
+  }
+  .pill-btn.active{background:var(--highlighter);color:#2b2410;border-color:var(--highlighter);}
+
+  .btn{
+    font-family:'Public Sans';font-weight:700;font-size:14px;padding:12px 22px;border-radius:4px;
+    border:none;cursor:pointer;letter-spacing:.01em;
+  }
+  .btn-primary{background:var(--highlighter);color:#2b2410;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-primary:disabled{opacity:.45;cursor:not-allowed;}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--paper);}
+  .btn-ghost:hover{border-color:var(--paper);}
+  .btn-danger{background:transparent;border:1px solid var(--redpen);color:var(--redpen);}
+  .btn-row{display:flex;gap:10px;justify-content:flex-end;margin-top:22px;}
+  .btn-row.left{justify-content:space-between;}
+
+  .stamp-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;margin:6px 0 24px;}
+  .stamp{
+    width:158px;height:158px;border-radius:50%;
+    border:4px solid var(--redpen);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    color:var(--redpen);transform:rotate(-7deg);
+    font-family:'Special Elite',monospace;
+    box-shadow:0 0 0 3px rgba(178,64,47,.15) inset;
+    animation:stampin .45s cubic-bezier(.2,1.4,.4,1) both;
+  }
+  @keyframes stampin{0%{transform:rotate(-7deg) scale(1.8);opacity:0;}100%{transform:rotate(-7deg) scale(1);opacity:1;}}
+  .stamp .num{font-size:44px;line-height:1;font-weight:700;}
+  .stamp .lbl{font-size:10px;letter-spacing:.12em;margin-top:4px;}
+
+  .breakdown{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;}
+  @media(max-width:600px){.breakdown{grid-template-columns:1fr;}}
+  .bd-row{background:var(--ink-2);border:1px solid var(--line);border-radius:4px;padding:11px 13px;}
+  .bd-row .top{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;}
+  .bd-row .top b{color:var(--paper);font-family:'Special Elite';}
+  .bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;}
+  .bar i{display:block;height:100%;background:var(--good);}
+
+  .kw-wrap{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+  .kw{
+    font-family:'Special Elite',monospace;font-size:12px;
+    background:var(--highlighter);color:#2b2410;padding:4px 10px;border-radius:2px;
+    transform:rotate(-1deg);box-shadow:1px 1px 0 rgba(0,0,0,.2);
+  }
+  .kw:nth-child(3n+2){transform:rotate(1deg);}
+  .kw:nth-child(3n){transform:rotate(-2deg);}
+
+  .note{
+    font-family:'Special Elite',monospace;font-size:12.5px;color:var(--redpen);
+    border-left:2px solid var(--redpen);padding-left:10px;margin:6px 0;
+  }
+  h3.section-h{
+    font-family:'Source Serif 4',serif;font-size:16px;margin:26px 0 10px;color:var(--paper);
+    border-bottom:1px solid var(--line);padding-bottom:8px;
+  }
+
+  .loading{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13.5px;font-family:'Special Elite';padding:20px 0;}
+  .spinner{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--highlighter);animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* Editor */
+  .editor-shell{display:grid;grid-template-columns:1fr;gap:18px;}
+  .ed-header{
+    background:var(--paper);color:var(--pencil);border-radius:4px;padding:18px 20px;
+    font-family:'Source Serif 4',serif;
+  }
+  .ed-header input.name{
+    font-family:'Source Serif 4',serif;font-weight:700;font-size:24px;color:var(--pencil);
+    background:transparent;border:none;width:100%;padding:2px 0;border-bottom:1px dashed transparent;
+  }
+  .ed-header input.name:hover, .ed-header input.name:focus{border-bottom:1px dashed var(--redpen);outline:none;}
+  .ed-header input.title{
+    font-family:'Public Sans';font-size:13px;color:#5b5a4d;background:transparent;border:none;width:100%;margin-top:2px;
+  }
+  .ed-header input.contact{
+    font-family:'Public Sans';font-size:12px;color:#7a7967;background:transparent;border:none;width:100%;margin-top:8px;
+  }
+
+  .ed-section{background:var(--paper);color:var(--pencil);border-radius:4px;padding:16px 20px;position:relative;}
+  .ed-section-top{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .ed-section-top input.sec-title{
+    font-family:'Public Sans';font-weight:800;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;
+    color:#7a3226;background:transparent;border:none;flex:1;padding:2px 0;
+  }
+  .icon-btn{background:transparent;border:none;cursor:pointer;color:#9a8f6f;font-size:13px;padding:3px 6px;border-radius:3px;}
+  .icon-btn:hover{background:#e7e0cb;color:var(--redpen);}
+
+  .sum-text{
+    width:100%;background:transparent;border:none;font-family:'Source Serif 4',serif;font-size:14px;line-height:1.6;
+    color:var(--pencil);resize:vertical;min-height:60px;
+  }
+  .list-items{display:flex;flex-wrap:wrap;gap:8px;}
+  .list-item{display:flex;align-items:center;gap:5px;background:#EAE4D2;border-radius:3px;padding:4px 8px;}
+  .list-item input{background:transparent;border:none;font-size:13px;color:var(--pencil);min-width:60px;}
+  .entry{border-top:1px solid #ddd3b3;padding:12px 0;}
+  .entry:first-child{border-top:none;padding-top:0;}
+  .entry-top{display:flex;gap:10px;align-items:baseline;}
+  .entry-top input.eh{font-family:'Public Sans';font-weight:700;font-size:14px;color:var(--pencil);background:transparent;border:none;flex:1;}
+  .entry-top input.em{font-family:'Public Sans';font-size:12px;color:#8a8873;background:transparent;border:none;text-align:right;width:170px;}
+  .bullets{margin-top:6px;}
+  .bullet-row{display:flex;gap:6px;align-items:flex-start;margin-bottom:4px;}
+  .bullet-row span.dash{color:#8a8873;margin-top:6px;}
+  .bullet-row textarea{
+    flex:1;background:transparent;border:none;font-family:'Source Serif 4',serif;font-size:13.5px;color:var(--pencil);
+    line-height:1.5;resize:none;overflow:hidden;
+  }
+  .small-add{font-family:'Public Sans';font-size:11.5px;font-weight:700;color:#7a3226;background:none;border:none;cursor:pointer;margin-top:4px;}
+  .small-add:hover{text-decoration:underline;}
+
+  .add-section-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+
+  .top-actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+  .top-actions .score-chip{
+    font-family:'Special Elite';font-size:12px;color:var(--good);border:1px solid var(--good);padding:5px 11px;border-radius:20px;
+  }
+  .hidden{display:none !important;}
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="masthead">
+    <div class="eyebrow">Applicant Tracking · Resume Grading Desk</div>
+    <h1>Get graded. Get revised. Get hired.</h1>
+    <p>Upload your resume, drop in the job description, and walk out with a rewritten, ATS-ready file.</p>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div class="desk" id="desk"></div>
+</div>
+
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const state = {
+  step: 1,
+  inputMode: 'paste', // 'paste' | 'pdf'
+  resumeText: '',
+  fileName: '',
+  jd: '',
+  scan: null,
+  resumeData: null,
+  loading: false,
+  loadingMsg: '',
+};
+
+const STEP_LABELS = ['Intake','Grading','Revision','Edit','Export'];
+
+function el(html){ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstElementChild; }
+async function callGroq(system, user) {
+  const API_KEY = "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";
+
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${API_KEY}`
+    },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        {
+          role: "system",
+          content: system
+        },
+        {
+          role: "user",
+          content: user
+        }
+      ],
+      temperature: 0.2,
+      response_format: {
+        type: "json_object"
+      }
+    })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    console.error("Groq API error:", data);
+    throw new Error(data.error?.message || "Unable to connect to Groq API");
+  }
+
+  return data.choices?.[0]?.message?.content || "";
+}
+
+function parseJSON(txt){
+  let cleaned = txt.trim().replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if(start>=0 && end>=0) cleaned = cleaned.slice(start, end+1);
+  return JSON.parse(cleaned);
+}
+
+async function extractPdfText(file){
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+  let text='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(it=>it.str).join(' ') + '\n';
+  }
+  return text.trim();
+}
+
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+/* ---------------- RENDER: TABS ---------------- */
+function renderTabs(){
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML='';
+  STEP_LABELS.forEach((label,i)=>{
+    const n=i+1;
+    const cls = n===state.step? 'tab active' : (n<state.step? 'tab done':'tab');
+    const tab = el(`<div class="${cls}"><small>${n}</small>${label}</div>`);
+    tabs.appendChild(tab);
+  });
+}
+
+/* ---------------- STEP 1: INTAKE ---------------- */
+function renderStep1(){
+  const desk = document.getElementById('desk');
+  desk.innerHTML='';
+  const wrap = el(`<div>
+    <div class="grid2">
+      <div>
+        <label class="field-label">Your Resume</label>
+        <div class="switch-row">
+          <button class="pill-btn ${state.inputMode==='paste'?'active':''}" id="mode-paste">Paste text</button>
+          <button class="pill-btn ${state.inputMode==='pdf'?'active':''}" id="mode-pdf">Upload PDF</button>
+        </div>
+        <div id="intake-body"></div>
+      </div>
+      <div>
+        <label class="field-label">Job Description</label>
+        <textarea id="jd-input" rows="12" placeholder="Paste the job description here...">${state.jd}</textarea>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="scan-btn" ${(!state.resumeText || !state.jd.trim())?'disabled':''}>Scan &amp; Grade →</button>
+    </div>
+    <div id="intake-loading"></div>
+  </div>`);
+  desk.appendChild(wrap);
+
+  const intakeBody = wrap.querySelector('#intake-body');
+  function renderIntakeBody(){
+    intakeBody.innerHTML='';
+    if(state.inputMode==='paste'){
+      const ta = el(`<textarea id="resume-text-input" rows="12" placeholder="Paste your resume text here...">${state.resumeText}</textarea>`);
+      ta.addEventListener('input', e=>{ state.resumeText = e.target.value; refreshScanBtn(); });
+      intakeBody.appendChild(ta);
+    } else {
+      const box = el(`<div>
+        <div class="uploadbox" id="drop-zone">
+          ${state.fileName ? ('Loaded: '+state.fileName+' — click to replace') : 'Click to choose a PDF resume'}
+        </div>
+        <input type="file" accept="application/pdf" id="pdf-file" class="hidden">
+      </div>`);
+      intakeBody.appendChild(box);
+      const fileInput = box.querySelector('#pdf-file');
+      box.querySelector('#drop-zone').addEventListener('click', ()=>fileInput.click());
+      fileInput.addEventListener('change', async e=>{
+        const f = e.target.files[0];
+        if(!f) return;
+        state.fileName = f.name;
+        box.querySelector('#drop-zone').textContent = 'Extracting text from '+f.name+'...';
+        try{
+          const text = await extractPdfText(f);
+          state.resumeText = text;
+          box.querySelector('#drop-zone').textContent = 'Loaded: '+f.name+' ('+text.length+' chars) — click to replace';
+        }catch(err){
+          box.querySelector('#drop-zone').textContent = 'Could not read that PDF. Try pasting text instead.';
+        }
+        refreshScanBtn();
+      });
+    }
+  }
+  renderIntakeBody();
+
+  wrap.querySelector('#mode-paste').addEventListener('click', ()=>{ state.inputMode='paste'; renderStep1(); });
+  wrap.querySelector('#mode-pdf').addEventListener('click', ()=>{ state.inputMode='pdf'; renderStep1(); });
+  wrap.querySelector('#jd-input').addEventListener('input', e=>{ state.jd = e.target.value; refreshScanBtn(); });
+
+  function refreshScanBtn(){
+    wrap.querySelector('#scan-btn').disabled = !(state.resumeText && state.resumeText.trim() && state.jd.trim());
+  }
+
+  wrap.querySelector('#scan-btn').addEventListener('click', runScan);
+}
+
+async function runScan(){
+  const loadingEl = document.getElementById('intake-loading');
+  loadingEl.innerHTML = `<div class="loading"><div class="spinner"></div>Reading your resume against the job description...</div>`;
+  document.getElementById('scan-btn').disabled = true;
+  try{
+    const system = `You are a strict ATS resume screening engine.
+Give conservative scores. Do not give high scores unless the resume explicitly proves matching skills, projects, experience, and keywords.
+
+Scoring rules:
+- 90-100: Almost every important job requirement is explicitly present.
+- 75-89: Strong match, but a few important requirements are missing.
+- 50-74: Partial match; several important skills or keywords are missing.
+- Below 50: Major job requirements are missing.
+- Never assume a skill exists just because it is related to another skill.
+- Treat skills not explicitly written in the resume as missing.
+- Compare all technical skills, tools, frameworks, databases, cloud platforms, and soft skills from the job description.
+- Formatting score can be high, but it must not increase the overall score unfairly.
+
+Respond with ONLY valid compact JSON. No markdown fences. No commentary before or after.`;
+    const user = `Analyze this resume against the job description.
+
+RESUME:
+"""
+${state.resumeText.slice(0,6000)}
+"""
+
+JOB DESCRIPTION:
+"""
+${state.jd.slice(0,3000)}
+"""
+
+Return ONLY compact JSON matching exactly this shape (no extra keys, no explanations):
+{"overallScore":<0-100 integer>,"breakdown":{"skillsMatch":<0-100>,"experienceMatch":<0-100>,"keywordMatch":<0-100>,"formatting":<0-100>},"missingKeywords":[<up to 10 short strings, terms from the JD missing or underrepresented in the resume>],"strengths":[<up to 4 short phrases, under 6 words each>],"gaps":[<up to 4 short phrases, under 8 words each>]}`;
+    const raw = await callGroq(system, user);
+    const parsed = parseJSON(raw);
+    state.scan = parsed;
+    state.step = 2;
+    loadingEl.innerHTML='';
+    render();
+  }catch(err){
+    loadingEl.innerHTML = `<div class="note">Grading failed — ${ (err&&err.message)||'please try again' }.</div>`;
+    document.getElementById('scan-btn').disabled = false;
+  }
+}
+
+/* ---------------- STEP 2: GRADING RESULTS ---------------- */
+function renderStep2(){
+  const desk = document.getElementById('desk');
+  const s = state.scan;
+  desk.innerHTML='';
+  const scoreColor = s.overallScore>=75 ? 'var(--good)' : (s.overallScore>=50? 'var(--highlighter)':'var(--redpen)');
+  const wrap = el(`<div>
+    <div class="stamp-wrap">
+      <div class="stamp" style="border-color:${scoreColor};color:${scoreColor}">
+        <div class="num">${s.overallScore}</div>
+        <div class="lbl">/ 100 MATCH</div>
+      </div>
+    </div>
+
+    <h3 class="section-h">Breakdown</h3>
+    <div class="breakdown" id="breakdown"></div>
+
+    <h3 class="section-h">Missing Keywords</h3>
+    <div class="kw-wrap" id="kwwrap"></div>
+
+    <h3 class="section-h">Strengths</h3>
+    <div id="strengths"></div>
+
+    <h3 class="section-h">Gaps</h3>
+    <div id="gaps"></div>
+
+    <div class="btn-row left">
+      <button class="btn btn-ghost" id="back1">← Back</button>
+      <button class="btn btn-primary" id="optimize-btn">Optimize Resume →</button>
+    </div>
+    <div id="opt-loading"></div>
+  </div>`);
+  desk.appendChild(wrap);
+
+  const bd = wrap.querySelector('#breakdown');
+  const labels = {skillsMatch:'Skills Match', experienceMatch:'Experience Match', keywordMatch:'Keyword Match', formatting:'Formatting'};
+  Object.keys(labels).forEach(k=>{
+    const v = (s.breakdown && s.breakdown[k]) || 0;
+    bd.appendChild(el(`<div class="bd-row">
+      <div class="top"><span>${labels[k]}</span><b>${v}</b></div>
+      <div class="bar"><i style="width:${v}%"></i></div>
+    </div>`));
+  });
+
+  const kwWrap = wrap.querySelector('#kwwrap');
+  (s.missingKeywords||[]).forEach(k=> kwWrap.appendChild(el(`<div class="kw">${escapeHtml(k)}</div>`)) );
+  if(!s.missingKeywords || !s.missingKeywords.length) kwWrap.appendChild(el(`<div class="note">No major keyword gaps found.</div>`));
+
+  const strengths = wrap.querySelector('#strengths');
+  (s.strengths||[]).forEach(t=> strengths.appendChild(el(`<div class="note" style="color:var(--good);border-color:var(--good)">+ ${escapeHtml(t)}</div>`)) );
+
+  const gaps = wrap.querySelector('#gaps');
+  (s.gaps||[]).forEach(t=> gaps.appendChild(el(`<div class="note">− ${escapeHtml(t)}</div>`)) );
+
+  wrap.querySelector('#back1').addEventListener('click', ()=>{ state.step=1; render(); });
+  wrap.querySelector('#optimize-btn').addEventListener('click', runOptimize);
+}
+
+async function runOptimize(){
+  const loadingEl = document.getElementById('opt-loading');
+
+  loadingEl.innerHTML = `
+    <div class="loading">
+      <div class="spinner"></div>
+      Rewriting your resume for this role...
+    </div>
+  `;
+
+  document.getElementById('optimize-btn').disabled = true;
+
+  try{
+    const missing = (state.scan.missingKeywords || []).join(', ');
+
+    const system = `You are an ATS resume optimizer.
+
+Important rules:
+1. Create a complete Technical Skills section.
+2. Include all skills already present in the original resume.
+3. Add missing job-description skills ONLY if they are reasonably related to the candidate's existing projects, coursework, or experience.
+4. Do not falsely claim advanced expertise. For skills not proven in the resume, add them under a separate section called "Relevant Skills / Learning" or "Familiar With".
+5. Never invent companies, job roles, dates, degrees, certifications, or achievements.
+6. Rewrite project bullets to naturally include relevant missing keywords where technically believable.
+7. Ensure the output contains a skills section even if the original resume does not have one.
+8. Use conservative, truthful wording such as "Familiar with", "Knowledge of", or "Applied in academic projects" for newly added relevant skills.
+
+Respond only with valid compact JSON. No markdown fences or commentary.`;
+
+    const user = `Rewrite this resume for the target job description.
+
+Missing ATS keywords found during scanning:
+${missing || '(none)'}
+
+You MUST include a "Technical Skills" section in the output.
+Put existing resume skills first. Then add relevant missing keywords from the list above under either:
+- "Technical Skills" if supported by projects/resume context, or
+- "Relevant Skills / Learning" if related but not explicitly proven.
+
+Also update project bullets to include relevant missing keywords only when believable from the project description.
+Do not add unrelated skills and do not claim professional experience for a skill that is only listed as learning/familiarity.
+Keep all real facts, employers, dates, and degrees. Keep bullets tight and results-oriented.
+
+ORIGINAL RESUME:
+"""
+${state.resumeText.slice(0,6000)}
+"""
+
+JOB DESCRIPTION:
+"""
+${state.jd.slice(0,3000)}
+"""
+
+Return ONLY compact JSON, exactly this shape:
+{
+  "name": "...",
+  "title": "short target role title",
+  "contact": "email | phone | linkedin | github | location",
+  "sections": [
+    {
+      "id": "summary",
+      "title": "Professional Summary",
+      "type": "summary",
+      "text": "2-3 sentence summary"
+    },
+    {
+      "id": "skills",
+      "title": "Technical Skills",
+      "type": "list",
+      "items": ["..."]
+    },
+    {
+      "id": "relevant_skills",
+      "title": "Relevant Skills / Learning",
+      "type": "list",
+      "items": ["..."]
+    },
+    {
+      "id": "projects",
+      "title": "Projects",
+      "type": "entries",
+      "entries": [
+        {
+          "heading": "Project Name",
+          "meta": "",
+          "bullets": ["..."]
+        }
+      ]
+    }
+  ]
+}`;
+
+    const raw = await callGroq(system, user);
+    const parsed = parseJSON(raw);
+
+    parsed.sections = (parsed.sections || []).map(s => ({
+      ...s,
+      id: s.id || uid()
+    }));
+
+    state.resumeData = parsed;
+    state.step = 4;
+
+    loadingEl.innerHTML = "";
+    render();
+
+  }catch(err){
+    console.error(err);
+
+    loadingEl.innerHTML = `
+      <div class="note">
+        Optimization failed — ${(err && err.message) || "please try again"}.
+      </div>
+    `;
+
+    document.getElementById("optimize-btn").disabled = false;
+  }
+}
+/* ---------------- STEP 4: VISUAL EDITOR ---------------- */
+function renderStep4(){
+  const desk = document.getElementById('desk');
+  desk.innerHTML='';
+  const d = state.resumeData;
+
+  const top = el(`<div class="top-actions">
+    <span class="score-chip">Graded ${state.scan? state.scan.overallScore : '--'}/100 → now editing</span>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost" id="back2">← Back to Grade</button>
+      <button class="btn btn-primary" id="to-export">Continue to Export →</button>
+    </div>
+  </div>`);
+  desk.appendChild(top);
+  top.querySelector('#back2').addEventListener('click', ()=>{ state.step=2; render(); });
+  top.querySelector('#to-export').addEventListener('click', ()=>{ state.step=5; render(); });
+
+  const shell = el(`<div class="editor-shell"></div>`);
+  desk.appendChild(shell);
+
+  // Header block
+  const header = el(`<div class="ed-header">
+    <input class="name" value="${attr(d.name)}" placeholder="Full Name">
+    <input class="title" value="${attr(d.title||'')}" placeholder="Target role title">
+    <input class="contact" value="${attr(d.contact||'')}" placeholder="email | phone | linkedin | location">
+  </div>`);
+  header.querySelector('.name').addEventListener('input', e=> d.name = e.target.value);
+  header.querySelector('.title').addEventListener('input', e=> d.title = e.target.value);
+  header.querySelector('.contact').addEventListener('input', e=> d.contact = e.target.value);
+  shell.appendChild(header);
+
+  d.sections.forEach((sec, idx)=> shell.appendChild(renderEditorSection(sec, idx)) );
+
+  const addRow = el(`<div class="add-section-row">
+    <button class="pill-btn" id="add-summary">+ Summary block</button>
+    <button class="pill-btn" id="add-list">+ List section</button>
+    <button class="pill-btn" id="add-entries">+ Entries section (experience/projects)</button>
+  </div>`);
+  shell.appendChild(addRow);
+  addRow.querySelector('#add-summary').addEventListener('click', ()=>{ d.sections.push({id:uid(), title:'New Section', type:'summary', text:''}); render(); });
+  addRow.querySelector('#add-list').addEventListener('click', ()=>{ d.sections.push({id:uid(), title:'New Section', type:'list', items:['']}); render(); });
+  addRow.querySelector('#add-entries').addEventListener('click', ()=>{ d.sections.push({id:uid(), title:'New Section', type:'entries', entries:[{heading:'',meta:'',bullets:['']}]}); render(); });
+}
+
+function renderEditorSection(sec, idx){
+  const box = el(`<div class="ed-section" data-idx="${idx}"></div>`);
+  const topRow = el(`<div class="ed-section-top">
+    <input class="sec-title" value="${attr(sec.title)}">
+    <button class="icon-btn" title="Move up" data-act="up">↑</button>
+    <button class="icon-btn" title="Move down" data-act="down">↓</button>
+    <button class="icon-btn" title="Delete section" data-act="del">✕</button>
+  </div>`);
+  topRow.querySelector('.sec-title').addEventListener('input', e=> sec.title = e.target.value);
+  topRow.querySelector('[data-act=up]').addEventListener('click', ()=> moveSection(idx,-1));
+  topRow.querySelector('[data-act=down]').addEventListener('click', ()=> moveSection(idx,1));
+  topRow.querySelector('[data-act=del]').addEventListener('click', ()=> { state.resumeData.sections.splice(idx,1); render(); });
+  box.appendChild(topRow);
+
+  if(sec.type==='summary'){
+    const ta = el(`<textarea class="sum-text" rows="3">${escapeHtml(sec.text||'')}</textarea>`);
+    ta.addEventListener('input', e=> sec.text = e.target.value);
+    box.appendChild(ta);
+  }
+  else if(sec.type==='list'){
+    const listWrap = el(`<div class="list-items"></div>`);
+    (sec.items||[]).forEach((item,i)=>{
+      const chip = el(`<div class="list-item"><input value="${attr(item)}"><button class="icon-btn" data-i="${i}">✕</button></div>`);
+      chip.querySelector('input').addEventListener('input', e=> sec.items[i]=e.target.value);
+      chip.querySelector('button').addEventListener('click', ()=>{ sec.items.splice(i,1); render(); });
+      listWrap.appendChild(chip);
+    });
+    box.appendChild(listWrap);
+    const addBtn = el(`<button class="small-add">+ add item</button>`);
+    addBtn.addEventListener('click', ()=>{ sec.items = sec.items||[]; sec.items.push(''); render(); });
+    box.appendChild(addBtn);
+  }
+  else if(sec.type==='entries'){
+    (sec.entries||[]).forEach((entry, ei)=>{
+      const eBox = el(`<div class="entry"></div>`);
+      const eTop = el(`<div class="entry-top">
+        <input class="eh" value="${attr(entry.heading)}" placeholder="Role — Company / Project name">
+        <input class="em" value="${attr(entry.meta||'')}" placeholder="Dates / Location">
+        <button class="icon-btn" title="Delete entry">✕</button>
+      </div>`);
+      eTop.querySelector('.eh').addEventListener('input', e=> entry.heading=e.target.value);
+      eTop.querySelector('.em').addEventListener('input', e=> entry.meta=e.target.value);
+      eTop.querySelector('button').addEventListener('click', ()=>{ sec.entries.splice(ei,1); render(); });
+      eBox.appendChild(eTop);
+
+      const bWrap = el(`<div class="bullets"></div>`);
+      (entry.bullets||[]).forEach((b,bi)=>{
+        const row = el(`<div class="bullet-row"><span class="dash">—</span><textarea rows="1">${escapeHtml(b)}</textarea><button class="icon-btn">✕</button></div>`);
+        const ta = row.querySelector('textarea');
+        autoGrow(ta);
+        ta.addEventListener('input', e=>{ entry.bullets[bi]=e.target.value; autoGrow(ta); });
+        row.querySelector('button').addEventListener('click', ()=>{ entry.bullets.splice(bi,1); render(); });
+        bWrap.appendChild(row);
+      });
+      eBox.appendChild(bWrap);
+      const addB = el(`<button class="small-add">+ add bullet</button>`);
+      addB.addEventListener('click', ()=>{ entry.bullets = entry.bullets||[]; entry.bullets.push(''); render(); });
+      eBox.appendChild(addB);
+      box.appendChild(eBox);
+    });
+    const addE = el(`<button class="small-add">+ add entry</button>`);
+    addE.addEventListener('click', ()=>{ sec.entries = sec.entries||[]; sec.entries.push({heading:'',meta:'',bullets:['']}); render(); });
+    box.appendChild(addE);
+  }
+  return box;
+}
+
+function moveSection(idx, dir){
+  const arr = state.resumeData.sections;
+  const j = idx+dir;
+  if(j<0 || j>=arr.length) return;
+  [arr[idx], arr[j]] = [arr[j], arr[idx]];
+  render();
+}
+
+function autoGrow(ta){
+  ta.style.height='auto';
+  ta.style.height=(ta.scrollHeight)+'px';
+}
+
+/* ---------------- STEP 5: EXPORT ---------------- */
+function renderStep5(){
+  const desk = document.getElementById('desk');
+  desk.innerHTML='';
+  const d = state.resumeData;
+
+  const top = el(`<div class="top-actions">
+    <span class="score-chip">Ready to export</span>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost" id="back4">← Back to Edit</button>
+    </div>
+  </div>`);
+  desk.appendChild(top);
+  top.querySelector('#back4').addEventListener('click', ()=>{ state.step=4; render(); });
+
+  const preview = el(`<div id="resume-preview" style="background:var(--paper);color:#232017;padding:36px 40px;border-radius:2px;font-family:'Source Serif 4',serif;"></div>`);
+  desk.appendChild(preview);
+  buildPreview(preview, d);
+
+  const actions = el(`<div class="btn-row left" style="margin-top:20px;">
+    <button class="btn btn-ghost" id="copy-txt">Copy as plain text</button>
+    <button class="btn btn-primary" id="dl-pdf">Download PDF</button>
+  </div>`);
+  desk.appendChild(actions);
+
+  actions.querySelector('#copy-txt').addEventListener('click', ()=>{
+    const txt = resumeToText(d);
+    navigator.clipboard.writeText(txt).then(()=>{
+      actions.querySelector('#copy-txt').textContent='Copied ✓';
+      setTimeout(()=> actions.querySelector('#copy-txt').textContent='Copy as plain text', 1600);
+    });
+  });
+
+  actions.querySelector('#dl-pdf').addEventListener('click', ()=>{
+    const btn = actions.querySelector('#dl-pdf');
+    btn.disabled = true; btn.textContent='Preparing PDF...';
+    const filename = (d.name||'resume').trim().replace(/\s+/g,'_') + '_optimized.pdf';
+    html2pdf().set({
+      margin: 0,
+      filename: filename,
+      html2canvas: {scale:2, backgroundColor:'#F3EFE3'},
+      jsPDF: {unit:'pt', format:'a4', orientation:'portrait'}
+    }).from(preview).save().then(()=>{
+      btn.disabled=false; btn.textContent='Download PDF';
+    });
+  });
+}
+
+function buildPreview(container, d){
+  container.innerHTML='';
+  container.appendChild(el(`<div style="text-align:center;margin-bottom:14px;">
+    <div style="font-size:26px;font-weight:700;">${escapeHtml(d.name||'')}</div>
+    ${d.title? `<div style="font-size:13px;color:#5b5a4d;margin-top:2px;">${escapeHtml(d.title)}</div>`:''}
+    ${d.contact? `<div style="font-size:11.5px;color:#7a7967;margin-top:6px;font-family:'Public Sans',sans-serif;">${escapeHtml(d.contact)}</div>`:''}
+  </div>`));
+
+  d.sections.forEach(sec=>{
+    const secEl = el(`<div style="margin-top:14px;"></div>`);
+    secEl.appendChild(el(`<div style="font-family:'Public Sans',sans-serif;font-weight:800;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:#7a3226;border-bottom:1px solid #ddd3b3;padding-bottom:4px;margin-bottom:8px;">${escapeHtml(sec.title)}</div>`));
+    if(sec.type==='summary'){
+      secEl.appendChild(el(`<div style="font-size:13px;line-height:1.6;">${escapeHtml(sec.text||'')}</div>`));
+    } else if(sec.type==='list'){
+      secEl.appendChild(el(`<div style="font-size:12.5px;font-family:'Public Sans',sans-serif;line-height:1.8;">${(sec.items||[]).map(escapeHtml).join(' &nbsp;·&nbsp; ')}</div>`));
+    } else if(sec.type==='entries'){
+      (sec.entries||[]).forEach(entry=>{
+        const eEl = el(`<div style="margin-bottom:10px;"></div>`);
+        eEl.appendChild(el(`<div style="display:flex;justify-content:space-between;font-family:'Public Sans',sans-serif;">
+          <span style="font-weight:700;font-size:13px;">${escapeHtml(entry.heading||'')}</span>
+          <span style="font-size:11.5px;color:#8a8873;">${escapeHtml(entry.meta||'')}</span>
+        </div>`));
+        (entry.bullets||[]).filter(b=>b && b.trim()).forEach(b=>{
+          eEl.appendChild(el(`<div style="font-size:12.5px;line-height:1.55;margin-left:14px;position:relative;">
+            <span style="position:absolute;left:-13px;">–</span>${escapeHtml(b)}
+          </div>`));
+        });
+        secEl.appendChild(eEl);
+      });
+    }
+    container.appendChild(secEl);
+  });
+}
+
+function resumeToText(d){
+  let out = (d.name||'') + '\n';
+  if(d.title) out += d.title+'\n';
+  if(d.contact) out += d.contact+'\n';
+  d.sections.forEach(sec=>{
+    out += '\n'+sec.title.toUpperCase()+'\n';
+    if(sec.type==='summary') out += (sec.text||'')+'\n';
+    else if(sec.type==='list') out += (sec.items||[]).join(', ')+'\n';
+    else if(sec.type==='entries'){
+      (sec.entries||[]).forEach(en=>{
+        out += `${en.heading||''}${en.meta? ' | '+en.meta:''}\n`;
+        (en.bullets||[]).filter(b=>b&&b.trim()).forEach(b=> out += '- '+b+'\n');
+      });
+    }
+  });
+  return out;
+}
+
+/* ---------------- helpers ---------------- */
+function escapeHtml(s){
+  return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function attr(s){ return escapeHtml(s); }
+
+function render(){
+  renderTabs();
+  if(state.step===1) renderStep1();
+  else if(state.step===2) renderStep2();
+  else if(state.step===4) renderStep4();
+  else if(state.step===5) renderStep5();
+}
+
+render();
+</script>
+</body>
+</html>
